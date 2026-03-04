@@ -74,7 +74,7 @@ class NirvanaOpenset_loss(nn.Module):
         counts = torch.clamp(counts, min=0.0)
         self.class_counts.copy_(counts)
         self._counts_initialized.fill_(True)
-        self._recompute_margins()
+        self.compute_margins()
         print(f"[NirvanaOpenset_loss] Class counts updated: {counts.tolist()}")
         print(f"[NirvanaOpenset_loss] Dynamic margins: {self.m_per_class.tolist()}")
         print(f"[NirvanaOpenset_loss] Margin range: [{self.m_per_class.min():.2f}, {self.m_per_class.max():.2f}]")
@@ -85,9 +85,9 @@ class NirvanaOpenset_loss(nn.Module):
         """
         binc = torch.bincount(labels, minlength=self.num_classes).to(self.class_counts)
         self.class_counts.add_(binc)
-        self._recompute_margins()
+        self.compute_margins()
 
-    def _recompute_margins(self):
+    def compute_margins(self):
         N = torch.sum(self.class_counts)
         if N <= 0:
             self.m_per_class.fill_(self.m_min)
