@@ -370,7 +370,7 @@ def main_worker(options):
 
         with torch.no_grad():
             criterion.class_counts.zero_()
-            criterion._compute_margins()
+            criterion.compute_margins()
 
         if options['oe'] and trainloader_oe is not None:
             train_Nirvana_oe_reg(
