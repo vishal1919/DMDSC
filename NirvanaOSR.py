@@ -22,8 +22,8 @@ from modules.dchs import NirvanaOpenset_loss
 from Networks.models import classifier32
 from Networks.resnet import resnet50, resnet18, resnet34, resnet101, resnet152
 from osr_dataloader import (
-    Random300K_Images, BloodMNIST_OSR, PathMNIST_OSR, OCTMnist_OSR,
-    DermaMNIST_OSR, TissueMNIST_OSR, ASC_OSR, breakhis_OSR
+    Random300K_Images, BloodMNIST_OSR, OCTMnist_OSR,
+    DermaMNIST_OSR, ASC_OSR, breakhis_OSR
 )
 from utils import Logger, save_networks, load_networks
 from core import test_ddfm_b9, train_Nirvana_oe, train_Nirvana_oe_reg
@@ -53,7 +53,7 @@ parser = argparse.ArgumentParser("Training")
 
 # Dataset
 parser.add_argument('--dataset', type=str, default='bloodmnist',
-                    choices=['bloodmnist', 'octmnist', 'dermamnist', 'tissuemnist', 'aod', 'asc', 'pathmnist', 'breakhis'],
+                    choices=['bloodmnist', 'octmnist', 'dermamnist', 'asc', 'breakhis_40'],
                     help="Dataset selection")
 parser.add_argument('--dataroot', type=str, default='./data')
 parser.add_argument('--outf', type=str, default='./logs_results', help='Directory to save results')
@@ -90,11 +90,11 @@ parser.add_argument('--save-dir', type=str, default='../log_random30k_noisy_ramp
 parser.add_argument('--eval', action='store_true', help="Eval", default=False)
 parser.add_argument('--oe', action='store_true', help="Outlier Exposure", default=True)
 parser.add_argument('--oe-path', type=str,
-                    default='/content/drive/MyDrive/Vishal_vi921/UCDSC_Dynamic_margin/data/Random300K_Images/300K_random_images.npy',
+                    default='./data',
                     help='Path to 300K random images for outlier exposure')
 
 parser.add_argument('--num-seeds', type=int, default=5,
-                    help='How many seeds to run. 1 for development, 5 for final reporting.')
+                    help='How many seeds to run.')
 
 # ASC dataset imbalance settings
 parser.add_argument('--imbalance-ratio', type=int, default=None, choices=[2, 5, 10, 50, 100],
@@ -138,17 +138,6 @@ def main_worker(options):
         testloader = Data.test_loader
         outloader = Data.out_loader
 
-    elif options['dataset'] == 'pathmnist':
-        Data = PathMNIST_OSR(
-            known=options['known'],
-            dataroot=options['dataroot'],
-            use_gpu=not options['use_cpu'],
-            batch_size=options['batch_size']
-        )
-        trainloader = Data.train_loader
-        testloader = Data.test_loader
-        outloader = Data.out_loader
-
     elif options['dataset'] == 'octmnist':
         split_dict = splits[options['dataset']][options['item']]
         known = split_dict['known']
@@ -179,21 +168,6 @@ def main_worker(options):
         testloader = Data.test_loader
         outloader = Data.out_loader
 
-    elif options['dataset'] == 'tissuemnist':
-        split_dict = splits[options['dataset']][options['item']]
-        known = split_dict['known']
-        unknown = split_dict['unknown']
-        Data = TissueMNIST_OSR(
-            known=known,
-            unknown=unknown,
-            dataroot=options['dataroot'],
-            use_gpu=not options['use_cpu'],
-            batch_size=options['batch_size']
-        )
-        trainloader = Data.train_loader
-        testloader = Data.test_loader
-        outloader = Data.out_loader
-
     elif options['dataset'] == 'asc':
         split_dict = splits[options['dataset']][options['item']]
         known = split_dict['known']
@@ -212,7 +186,7 @@ def main_worker(options):
         outloader = Data.out_loader
         options['img_size'] = 224
 
-    elif options['dataset'] == 'breakhis':
+    elif options['dataset'] == 'breakhis_40':
         split_dict = splits[options['dataset']][options['item']]
         known = split_dict['known']
         unknown = split_dict['unknown']
@@ -226,7 +200,7 @@ def main_worker(options):
         trainloader = Data.train_loader
         testloader = Data.test_loader
         outloader = Data.out_loader
-        options['img_size'] = 32
+        options['img_size'] = 224
 
     else:
         raise ValueError('No dataset chosen or dataset not supported in this script.')
@@ -246,10 +220,10 @@ def main_worker(options):
         if not os.path.exists(background_path):
             raise FileNotFoundError(f"Background dataset not found at {background_path}")
 
-        if options['dataset'] in ['aod', 'asc']:
+        if options['dataset'] in ['aod', 'asc', 'breakhis_40']:
             oe_transform = tf.Compose([
                 tf.Resize((224, 224)),
-                tf.RandomCrop(224, padding=20),
+                tf.RandomCrop(224, padding=4),
                 tf.RandomHorizontalFlip(),
                 tf.ToTensor()
             ])
@@ -396,7 +370,7 @@ def main_worker(options):
 
         with torch.no_grad():
             criterion.class_counts.zero_()
-            criterion._recompute_margins()
+            criterion._compute_margins()
 
         if options['oe'] and trainloader_oe is not None:
             train_Nirvana_oe_reg(
