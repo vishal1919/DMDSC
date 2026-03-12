@@ -61,14 +61,14 @@ def train_Nirvana_oe_reg(net, criterion, optimizer, scheduler, trainloader, trai
             optimizer.zero_grad()
         
             x, y = net(inputs_inout, True)
-            intraclass_loss, triplet_loss, outlier_triplet_loss, uncertainty_loss = criterion(
+            intraclass_loss, triplet_loss, outlier_triplet_loss = criterion(
                 targets_in, 
                 x[:len(in_set[0])], 
                 x[len(in_set[0]):], 
                 ramp=options['ramp_activate'],
                 update_counts=True,
             )
-            total_loss = intraclass_loss + triplet_loss + outlier_triplet_loss + uncertainty_loss
+            total_loss = intraclass_loss + triplet_loss + outlier_triplet_loss
 
             # Add L1 regularization if specified
             if options.get('l1_weight', 0) > 0:
@@ -82,8 +82,6 @@ def train_Nirvana_oe_reg(net, criterion, optimizer, scheduler, trainloader, trai
         
         losses.update(total_loss.item(), targets_in.size(0))
         
-        # ... inside for batch_idx, (in_set, out_set) in enumerate(...):
-        # === DMCL debug logs: margins & counts ===
         if (batch_idx + 1) % options['print_freq'] == 0:
             print("LR: {} - Batch {}/{}\t Loss {:.6f} ({:.6f})".format(
                 optimizer.param_groups[0]["lr"], batch_idx+1, len(trainloader), losses.val, losses.avg
