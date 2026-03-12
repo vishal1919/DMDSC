@@ -21,7 +21,7 @@ import numpy as np
 from modules.dchs import NirvanaOpenset_loss
 from Networks.models import classifier32
 from Networks.resnet import resnet50, resnet18, resnet34, resnet101, resnet152
-from osr_dataloader import (
+from datasets.osr_dataloader import (
     Random300K_Images, BloodMNIST_OSR, OCTMnist_OSR,
     DermaMNIST_OSR, ASC_OSR, breakhis_OSR
 )
@@ -72,7 +72,6 @@ parser.add_argument('--noisy-ratio', type=float, default=0.0, help="noisy ratio 
 parser.add_argument('--m-min', type=float, default=38.0, help="margin for hinge")
 parser.add_argument('--m-max', type=float, default=71.0, help="margin for hinge")
 parser.add_argument('--Expand', default=100, type=int, metavar='N', help='Expand factor of centers')
-parser.add_argument('--uncertainty-weight', type=float, default=5.0, help='Weight for uncertainty regularization loss component')
 parser.add_argument('--outlier-weight', type=float, default=1.0, help='Weight for outlier triplet loss component')
 parser.add_argument('--inter-weight', type=float, default=1.0, help='Weight for interclass triplet loss component')
 parser.add_argument('--model', type=str, default='classifier32',
@@ -301,7 +300,6 @@ def main_worker(options):
         m_max=options['m_max'],
         Expand=options['Expand'],
         inter_weight=options['inter_weight'],
-        uncertainty_weight=options['uncertainty_weight'],
         outlier_weight=options['outlier_weight']
     )
 
