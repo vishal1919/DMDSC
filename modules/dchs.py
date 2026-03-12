@@ -7,11 +7,8 @@ class NirvanaOpenset_loss(nn.Module):
     """
     Adds dynamic margin adaptation based on class frequency.
     
-    IMPORTANT: After initialization, call set_class_counts() with your actual
+    IMPORTANT: After initialization, call set_class_counts() with actual
     training data distribution BEFORE training to ensure proper margins from epoch 0.
-    
-    Example usage:
-        criterion = NirvanaOpenset_loss(num_classes=10, feat_dim=128)
         
         # Compute actual class distribution from training data
         train_labels = torch.cat([labels for _, labels in trainloader])
@@ -28,8 +25,6 @@ class NirvanaOpenset_loss(nn.Module):
         m_min=38.0,
         m_max=71.0,
         Expand=100,
-        use_uncertainty_reg=True,
-        uncertainty_weight=10.0,
         outlier_weight=1.0,
         inter_weight=1.0,
     ):
@@ -40,8 +35,6 @@ class NirvanaOpenset_loss(nn.Module):
         self.m_min = float(m_min)
         self.m_max = float(m_max)
         self.E = Expand
-        self.use_uncertainty_reg = use_uncertainty_reg
-        self.uncertainty_weight = uncertainty_weight
         self.outlier_weight = outlier_weight
         self.inter_weight = inter_weight
 
@@ -55,9 +48,6 @@ class NirvanaOpenset_loss(nn.Module):
                 self.centers.copy_(torch.from_numpy(precalculated_centers))
                 print("Centers loaded.")
 
-        # Initialize class counts to zero - this is just a placeholder!
-        # MUST call set_class_counts() with actual data distribution before training.
-        # Without proper initialization, all classes will use a uniform margin.
         self.register_buffer("class_counts", torch.zeros(self.num_classes, dtype=torch.float32))
         self.register_buffer("m_per_class", torch.full((self.num_classes,), float(self.m_min)))
         self.register_buffer("_counts_initialized", torch.tensor(False))
@@ -94,37 +84,7 @@ class NirvanaOpenset_loss(nn.Module):
             return
         frac = self.class_counts / N
         self.m_per_class.copy_(self.m_min + (self.m_max - self.m_min) * (1.0 - frac))
-
-    # ---------- Uncertainty regularizer ----------
-    def compute_uncertainty_penalty(self, features, labels):
-        """
-        Compute uncertainty penalty: U = min_distance / avg_distance
-        """
-        batch_size = features.size(0)
-
-        distances = torch.cdist(features, self.centers)  # [batch_size, num_centers]
-
-        min_distances, min_indices = torch.min(distances, dim=1)  # [batch_size]
-
-        # Calculate average distance to all OTHER centers (excluding the closest one)
-        uncertainty_penalties = []
-        for i in range(batch_size):
-            sample_distances = distances[i]  # [num_centers]
-            closest_idx = min_indices[i]
-
-            mask = torch.ones(self.num_centers, dtype=torch.bool, device=features.device)
-            mask[closest_idx] = False
-
-            avg_other_distance = sample_distances[mask].mean()
-
-            # Uncertainty ratio: min_distance / avg_distance_to_others
-            uncertainty_ratio = min_distances[i] / (avg_other_distance + 1e-8)
-            uncertainty_penalties.append(uncertainty_ratio)
-
-        uncertainty_penalties = torch.stack(uncertainty_penalties)
-        return uncertainty_penalties.mean()
         
-    # ---------- Forward ----------
     def forward(self, labels, x, x_out, ramp=False, update_counts=True):
         """
         x: (B, D) inlier features
@@ -142,14 +102,12 @@ class NirvanaOpenset_loss(nn.Module):
                 "Currently using uniform margins for all classes.",
                 UserWarning
             )
-            # Set a flag so we only warn once
             self._counts_initialized.fill_(True)
         
         if labels.max() >= self.num_classes or labels.min() < 0:
             raise ValueError("Labels out of valid range for NirvanaOpenset_loss.")
 
         if update_counts:
-            # optional online update
             self.update_counts_online(labels.detach())
 
         dtype, device = x.dtype, x.device
@@ -162,14 +120,13 @@ class NirvanaOpenset_loss(nn.Module):
         dist_in = (x2 + c2).to(dtype=dtype)
         dist_in.addmm_(x, centers.t(), beta=1, alpha=-2)  # [B, C]
 
-        # intra-class pull (L2-to-true-center)
+        # intra-class
         intra = dist_in.gather(dim=1, index=labels.unsqueeze(1)).squeeze(1)
         intraclass_loss = intra.sum() / (B * self.feat_dim * 2.0)
-
-        # ----- DMCL per-sample margins -----
+        
         m_batch = self.m_per_class[labels].to(dtype=dtype, device=device)  # [B]
 
-        # inter-class push (triplet-style)
+        # inter-class
         centers_dist_inter = intra.unsqueeze(1) - dist_in  # [B, C]
         mask = ~F.one_hot(labels.long(), num_classes=self.num_classes).bool()
         interclass_loss_triplet = (
@@ -177,12 +134,8 @@ class NirvanaOpenset_loss(nn.Module):
             / (self.num_centers * B * 2.0)
         )
         interclass_loss_triplet = self.inter_weight * interclass_loss_triplet
-        # uncertainty (optional)
-        uncertainty_loss = torch.tensor(0.0, dtype=dtype, device=device)
-        if self.use_uncertainty_reg:
-            uncertainty_loss = self.uncertainty_weight * self.compute_uncertainty_penalty(x, labels)
 
-        # ----- outlier exposure part (uses same per-sample margins) -----
+        # ----- outlier exposure 
         if x_out is not None:
             x_out = x_out.to(dtype=dtype, device=device)
             B_out = x_out.size(0)
@@ -194,8 +147,7 @@ class NirvanaOpenset_loss(nn.Module):
 
             # pair each outlier row with inlier labels' columns
             outlier_cols = dist_out.index_select(1, labels.long())  # [B_out, B]
-
-            # broadcast m_batch over (B_out, B)
+            
             m_pair = m_batch.unsqueeze(0).expand(B_out, B)
 
             if ramp:
@@ -206,9 +158,9 @@ class NirvanaOpenset_loss(nn.Module):
             outlier_triplet_multi_loss = hinge.sum() / (B * B_out * 2.0)
             weighted_outlier_loss = self.outlier_weight * outlier_triplet_multi_loss
 
-            return intraclass_loss, interclass_loss_triplet, weighted_outlier_loss, uncertainty_loss
+            return intraclass_loss, interclass_loss_triplet, weighted_outlier_loss
         else:
-            return intraclass_loss, interclass_loss_triplet, None, uncertainty_loss
+            return intraclass_loss, interclass_loss_triplet, None
 
 def FindCenters(k, E=1):
     """
