@@ -32,8 +32,6 @@ class Random300K_Images(torch.utils.data.Dataset):
             self.transform = transforms.Compose([
                 transforms.Resize((32,32)),
                 transforms.RandomApply([
-                  transforms.GaussianBlur(kernel_size=3)
-                ], p=0.3),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
             ])
@@ -142,11 +140,11 @@ class OCTMnist_OSR(object):
         transform = transforms.Compose([
             transforms.Resize((32, 32)),
             transforms.Grayscale(3),
-            #transforms.RandomCrop(32, padding=4),  
-            #transforms.RandomHorizontalFlip(),
-            #transforms.RandomVerticalFlip(),
-            #transforms.RandomAffine(degrees=0, translate=(0.05, 0.05), scale=(0.95, 1.05)), 
-            #transforms.RandomApply([transforms.RandomRotation(15)], p=0.5),     
+            transforms.RandomCrop(32, padding=4),  
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomVerticalFlip(),
+            transforms.RandomAffine(degrees=0, translate=(0.05, 0.05), scale=(0.95, 1.05)), 
+            transforms.RandomApply([transforms.RandomRotation(15)], p=0.5),     
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
         ])
@@ -304,7 +302,7 @@ class ASC_OSR(object):
         if unknown is not None:
             self.unknown = unknown
         else:
-            self.unknown = list(set(range(0, 6)) - set(self.known))  # Fixed: Changed from 8 to 6 classes
+            self.unknown = list(set(range(0, 6)) - set(self.known))  
 
         print('ASC_OSR Known classes:', self.known)
         print('ASC_OSR Unknown classes:', self.unknown)
@@ -433,7 +431,7 @@ class breakhis_OSR(object):
         if unknown is not None:
             self.unknown = unknown
         else:
-            self.unknown = list(set(range(0, 8)) - set(self.known))  # Fixed: Changed from 8 to 6 classes
+            self.unknown = list(set(range(0, 8)) - set(self.known)) 
 
         print('breakhis_OSR Known classes:', self.known)
         print('breakhis_OSR Unknown classes:', self.unknown)
