@@ -21,7 +21,7 @@ import numpy as np
 from modules.dchs import NirvanaOpenset_loss
 from Networks.models import classifier32
 from Networks.resnet import resnet50, resnet18, resnet34, resnet101, resnet152
-from osr_dataloader import (
+from datasets.osr_dataloader import (
     Random300K_Images, BloodMNIST_OSR, OCTMnist_OSR,
     DermaMNIST_OSR, ASC_OSR, breakhis_OSR
 )
