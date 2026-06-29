@@ -7,26 +7,24 @@ splits_2020 = {
         {'known': [7, 1, 2, 3], 'unknown': [5, 4, 6, 0]},
         {'known': [0, 7, 4, 6], 'unknown': [1, 3, 5, 2]}
     ],
-    'breakhis_40': [
-        #{'known': [1, 3, 4, 5], 'unknown': [0, 2, 6, 7]},
-        {'known': [0, 1, 5, 6], 'unknown': [2, 3, 4, 7]},
-        {'known': [0, 1, 4, 7], 'unknown': [2, 3, 5, 6]},
-        {'known': [1, 3, 6, 7], 'unknown': [0, 2, 4, 5]},
-        {'known': [1, 2, 4, 6], 'unknown': [0, 3, 5, 7]},
-        {'known': [0, 1, 3, 7], 'unknown': [2, 4, 5, 6]}
-    ],
-  
+    'octmnist': [
+        {'known': [2, 3], 'unknown': [0, 1]},
+        {'known': [0, 3], 'unknown': [1, 2]},
+        {'known': [1, 3], 'unknown': [0, 2]}
+    ],  
     'dermamnist': [
         {'known': [0, 2, 5, 6], 'unknown': [1, 3, 4]},
         {'known': [1, 5, 2, 4], 'unknown': [3, 6, 0]},
         {'known': [5, 1, 6, 4], 'unknown': [0, 3, 2]},
         {'known': [0, 3, 5, 6], 'unknown': [2, 4, 1]}
     ],
-    'octmnist': [
-        {'known': [2, 3], 'unknown': [0, 1]},
-        {'known': [0, 3], 'unknown': [1, 2]},
-        {'known': [1, 3], 'unknown': [0, 2]}
-    ],  
+    'breakhis_40': [
+        {'known': [0, 1, 5, 6], 'unknown': [2, 3, 4, 7]},
+        {'known': [0, 1, 4, 7], 'unknown': [2, 3, 5, 6]},
+        {'known': [1, 3, 6, 7], 'unknown': [0, 2, 4, 5]},
+        {'known': [1, 2, 4, 6], 'unknown': [0, 3, 5, 7]},
+        {'known': [0, 1, 3, 7], 'unknown': [2, 4, 5, 6]}
+    ],
     'asc': [
         {'known': [0, 1, 2], 'unknown': [3, 4, 5]},  # Acne, Carcinoma, Eczema vs Keratosis, Milia, Rosacea
         {'known': [0, 3, 4], 'unknown': [1, 2, 5]},  # Acne, Keratosis, Milia vs Carcinoma, Eczema, Rosacea
