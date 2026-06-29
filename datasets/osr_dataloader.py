@@ -31,7 +31,6 @@ class Random300K_Images(torch.utils.data.Dataset):
         if transform is None:
             self.transform = transforms.Compose([
                 transforms.Resize((32,32)),
-                transforms.Grayscale(3),
                 transforms.RandomApply([
                   transforms.GaussianBlur(kernel_size=3)
                 ], p=0.3),
