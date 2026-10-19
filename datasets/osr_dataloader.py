@@ -158,7 +158,7 @@ class OCTMnist_OSR(object):
 
         train_dataset = OCTMNIST(split='train', transform=transform, 
                                 download=True, root=dataroot)
-        test_dataset = OCTMNIST(split='val', transform=test_transform,
+        test_dataset = OCTMNIST(split='test', transform=test_transform,
                                download=True, root=dataroot)
 
         train_labels = train_dataset.labels.squeeze()
